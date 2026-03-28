@@ -61,6 +61,17 @@ export const PomodoroProvider = ({ children }) => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
+        
+        // --- Task Time Tracking ---
+        if (mode === 'focus') {
+          setTasks(prevTasks => 
+            prevTasks.map(t => 
+              t.isActiveTask && !t.completed 
+                ? { ...t, timeSpent: (t.timeSpent || 0) + 1 } 
+                : t
+            )
+          );
+        }
       }, 1000);
     } else if (timeLeft === 0) {
       handleTimerComplete();
@@ -68,7 +79,7 @@ export const PomodoroProvider = ({ children }) => {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [isActive, timeLeft]);
+  }, [isActive, timeLeft, mode]);
 
   const handleTimerComplete = () => {
     setIsActive(false);
@@ -76,6 +87,10 @@ export const PomodoroProvider = ({ children }) => {
     if (mode === 'focus') {
       const nextCycle = cycleCount + 1;
       setCycleCount(nextCycle);
+      
+      // Mark current active tasks as completed or just stop tracking?
+      // For now just transition mode.
+      
       if (nextCycle % settings.cycles === 0) {
         setMode('longBreak');
         setTimeLeft(settings.longBreak * 60);
@@ -103,10 +118,16 @@ export const PomodoroProvider = ({ children }) => {
       id: Date.now().toString(),
       title: taskData.title,
       completed: false,
+      isActiveTask: false,
+      timeSpent: 0,
       priority: taskData.priority || 'medium',
       project: taskData.project || 'inbox',
       createdAt: new Date().toISOString(),
       dueDate: taskData.dueDate || 'today',
+      pomodoros: 0,
+      targetPomodoros: 1,
+      notes: '',
+      tags: [],
     };
     setTasks([newTask, ...tasks]);
   };
@@ -115,13 +136,21 @@ export const PomodoroProvider = ({ children }) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
   };
 
+  const toggleActiveTask = (id) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, isActiveTask: !t.isActiveTask } : t));
+  };
+
+  const updateTask = (id, updates) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
   const deleteTask = (id) => {
     setTasks(tasks.filter(t => t.id !== id));
   };
 
   return (
     <PomodoroContext.Provider value={{
-      tasks, addTask, toggleTask, deleteTask,
+      tasks, addTask, toggleTask, toggleActiveTask, updateTask, deleteTask,
       projects, activeTab, setActiveTab,
       settings, setSettings,
       timeLeft, setTimeLeft, isActive, toggleTimer, resetTimer, mode,

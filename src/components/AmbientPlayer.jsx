@@ -58,8 +58,8 @@ const AmbientPlayer = () => {
             <input 
               type="range" 
               min="0" max="100" 
-              value={volume} 
-              onChange={(e) => setVolume(e.target.value)} 
+              value={volume * 100} 
+              onChange={(e) => setVolume(e.target.value / 100)} 
             />
           </div>
 

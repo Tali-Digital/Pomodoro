@@ -1,18 +1,65 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check, Trash, MoreVertical, LayoutGrid, Clock, Calendar } from 'lucide-react';
-import { usePomodoro } from '../PomodoroContext';
+import TaskModal from './TaskModal';
 
 const TaskList = () => {
-  const { tasks, addTask, toggleTask, deleteTask, activeTab } = usePomodoro();
+  const { tasks, addTask, toggleTask, toggleActiveTask, deleteTask, activeTab } = usePomodoro();
   const [inputValue, setInputValue] = useState('');
   const [showCompleted, setShowCompleted] = useState(true);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   const filteredTasks = tasks.filter(task => {
     if (activeTab === 'completed') return task.completed;
-    if (activeTab === 'today') return !task.completed; // Simple filter for now
+    if (activeTab === 'today') return !task.completed;
     return !task.completed;
   });
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const TaskItem = ({ task }) => (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className={`task-item ${task.completed ? 'completed' : ''} ${task.isActiveTask ? 'is-active' : ''}`}
+      onClick={() => setSelectedTask(task)}
+    >
+      <button 
+        className={`task-check ${task.completed ? 'active' : ''}`} 
+        onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+      >
+        <Check size={14} />
+      </button>
+      
+      <div className="task-content">
+        <p className="task-title">{task.title}</p>
+        <div className="task-meta">
+          <Calendar size={12} />
+          <span>{task.dueDate}</span>
+          <span className="task-timer-badge">
+             <Clock size={10} /> {formatTime(task.timeSpent || 0)}
+          </span>
+        </div>
+      </div>
+
+      <div className="task-actions-row" onClick={e => e.stopPropagation()}>
+         <button 
+          className={`task-play-btn ${task.isActiveTask ? 'active' : ''}`}
+          onClick={() => toggleActiveTask(task.id)}
+         >
+           <Play size={14} fill={task.isActiveTask ? "currentColor" : "none"} />
+         </button>
+         <div className={`task-priority ${task.priority}`}></div>
+         <button className="delete-task" onClick={() => deleteTask(task.id)}>
+           <Trash size={14} />
+         </button>
+      </div>
+    </motion.div>
+  );
 
   const completedTasks = tasks.filter(task => task.completed && activeTab !== 'completed');
 
@@ -22,30 +69,6 @@ const TaskList = () => {
       setInputValue('');
     }
   };
-
-  const TaskItem = ({ task }) => (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className={`task-item ${task.completed ? 'completed' : ''}`}
-    >
-      <button className={`task-check ${task.completed ? 'active' : ''}`} onClick={() => toggleTask(task.id)}>
-        <Check size={14} />
-      </button>
-      <div className="task-content">
-        <p className="task-title">{task.title}</p>
-        <div className="task-meta">
-          <Calendar size={12} />
-          <span>{task.dueDate}</span>
-        </div>
-      </div>
-      <div className={`task-priority ${task.priority}`}></div>
-      <button className="delete-task" onClick={() => deleteTask(task.id)}>
-        <Trash size={14} />
-      </button>
-    </motion.div>
-  );
 
   return (
     <div className="task-list-container">
@@ -83,6 +106,12 @@ const TaskList = () => {
         </div>
       )}
 
+      <TaskModal 
+        isOpen={!!selectedTask} 
+        task={selectedTask} 
+        onClose={() => setSelectedTask(null)} 
+      />
+
       <style>{`
         .task-list-container {
           padding-top: 10px;
@@ -116,8 +145,11 @@ const TaskList = () => {
           border-radius: 8px;
           margin-bottom: 8px;
           transition: var(--transition);
+          cursor: pointer;
         }
         .task-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .task-item.is-active { border-color: var(--accent); background: rgba(255, 107, 74, 0.05); }
+        
         .task-check {
           width: 20px;
           height: 20px;
@@ -135,8 +167,14 @@ const TaskList = () => {
         .task-content { flex: 1; }
         .task-title { font-size: 14px; margin-bottom: 2px; }
         .task-item.completed .task-title { text-decoration: line-through; color: #555; }
-        .task-meta { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; }
+        .task-meta { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #555; }
+        .task-timer-badge { display: flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; }
         
+        .task-actions-row { display: flex; align-items: center; gap: 12px; }
+        .task-play-btn { color: #555; transition: 0.2s; }
+        .task-play-btn:hover { color: var(--accent); }
+        .task-play-btn.active { color: var(--accent); }
+
         .task-priority { width: 4px; height: 16px; border-radius: 2px; }
         .task-priority.high { background: var(--status-high); }
         .task-priority.medium { background: var(--status-medium); }
