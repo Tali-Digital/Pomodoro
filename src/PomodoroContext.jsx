@@ -3,11 +3,12 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 const PomodoroContext = createContext();
 
 export const PomodoroProvider = ({ children }) => {
+  const API_URL = import.meta.env.PROD 
+    ? 'https://pomodoro-api.talidigital.com.br/api'
+    : 'http://localhost:5000/api';
+
   // --- Tasks State ---
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('pomodoro_tasks');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [tasks, setTasks] = useState([]);
 
   // --- Projects State ---
   const [projects, setProjects] = useState(() => {
