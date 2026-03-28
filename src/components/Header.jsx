@@ -1,9 +1,11 @@
+import React, { useState } from 'react';
+import { usePomodoro } from '../PomodoroContext';
 import { Settings as SettingsIcon } from 'lucide-react';
 import SettingsModal from './SettingsModal';
 
 const Header = () => {
   const { activeTab, tasks, settings, timeLeft, mode } = usePomodoro();
-  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const getTitle = () => {
     switch (activeTab) {
