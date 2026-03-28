@@ -3,41 +3,11 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 const PomodoroContext = createContext();
 
 export const PomodoroProvider = ({ children }) => {
-  const API_URL = import.meta.env.PROD 
-    ? 'https://pomodoro-api.talidigital.com.br/api' // Exemplo de URL de produção
-    : 'http://localhost:5000/api';
-
   // --- Tasks State ---
-  const [tasks, setTasks] = useState([]);
-
-  // Fetch from API on mount
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const res = await fetch(`${API_URL}/tasks`);
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setTasks(data.map(t => ({ 
-            ...t, 
-            completed: !!t.completed,
-            dueDate: t.due_date 
-          })));
-        } else {
-          loadFromLocal();
-        }
-      } catch (err) {
-        console.warn('API error, falling back to local storage');
-        loadFromLocal();
-      }
-    };
-    
-    const loadFromLocal = () => {
-      const saved = localStorage.getItem('pomodoro_tasks');
-      if (saved) setTasks(JSON.parse(saved));
-    };
-
-    fetchTasks();
-  }, []);
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem('pomodoro_tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // --- Projects State ---
   const [projects, setProjects] = useState(() => {
@@ -127,53 +97,25 @@ export const PomodoroProvider = ({ children }) => {
   };
 
   // --- Task Actions ---
-  const addTask = async (taskData) => {
+  const addTask = (taskData) => {
     const newTask = {
+      id: Date.now().toString(),
       title: taskData.title,
+      completed: false,
       priority: taskData.priority || 'medium',
       project: taskData.project || 'inbox',
-      due_date: taskData.dueDate || 'today',
+      createdAt: new Date().toISOString(),
+      dueDate: taskData.dueDate || 'today',
     };
-
-    try {
-      const res = await fetch(`${API_URL}/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask)
-      });
-      const savedTask = await res.json();
-      const mappedTask = { ...savedTask, completed: !!savedTask.completed, dueDate: savedTask.due_date };
-      setTasks([mappedTask, ...tasks]);
-    } catch (err) {
-      setTasks([{ ...newTask, id: Date.now().toString(), completed: false }, ...tasks]);
-    }
+    setTasks([newTask, ...tasks]);
   };
 
-  const toggleTask = async (id) => {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return;
-    
+  const toggleTask = (id) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-
-    try {
-      await fetch(`${API_URL}/tasks/${id}/toggle`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !task.completed })
-      });
-    } catch (err) {
-      console.error('Failed to sync toggle');
-    }
   };
 
-  const deleteTask = async (id) => {
+  const deleteTask = (id) => {
     setTasks(tasks.filter(t => t.id !== id));
-
-    try {
-      await fetch(`${API_URL}/tasks/${id}`, { method: 'DELETE' });
-    } catch (err) {
-      console.error('Failed to sync delete');
-    }
   };
 
   return (
