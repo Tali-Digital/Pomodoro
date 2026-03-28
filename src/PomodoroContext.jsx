@@ -3,7 +3,9 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 const PomodoroContext = createContext();
 
 export const PomodoroProvider = ({ children }) => {
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = import.meta.env.PROD 
+    ? 'https://pomodoro-api.talidigital.com.br/api' // Exemplo de URL de produção
+    : 'http://localhost:5000/api';
 
   // --- Tasks State ---
   const [tasks, setTasks] = useState([]);
